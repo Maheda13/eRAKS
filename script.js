@@ -1,8 +1,8 @@
 // =========================================================================
 // KONFIGURASI API — WAJIB DIISI SEBELUM DIPAKAI
 // =========================================================================
-const API_URL = "https://script.google.com/macros/s/GANTI_DENGAN_DEPLOYMENT_ID/exec";
-const API_KEY = "GANTI_DENGAN_API_KEY_ANDA"; // harus sama persis dengan Script Properties API_KEY
+const API_URL = "https://script.google.com/macros/s/AKfycbzxEdpok4rcqZDHWCRA4hF05JgkVQARJ3K5l41Y5zdVDZlz7RIVTODU-jfKpjBKj74a/exec";
+const API_KEY = "sk_live_4zXHlUp57mSaUjEcXrdXuaw8UrHGsUxK"; // harus sama persis dengan Script Properties API_KEY
 
 async function callAPI(action, payload) {
   const res = await fetch(API_URL, {
