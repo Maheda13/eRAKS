@@ -13,7 +13,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- XLSX dimuat lazy saat user klik download, tidak perlu di sini lagi -->
 </head>
 <body>
 
@@ -28,107 +28,38 @@
     <!-- ================= SIDEBAR ================= -->
     <aside class="sidebar" id="sidebar">
       <div class="brand">
-        <div class="brand-mark">RAKS <span>DAFI</span></div>
+        <div class="brand-mark">RAKS <span>DAFI</span> 5.1</div>
         <div class="brand-tagline">RENCANA ANGGARAN KEGIATAN<br>SMPIT DARUL FIKRI</div>
       </div>
-      <nav class="tabs">
-        <button class="tab-btn active" id="tab-form" onclick="gantiHalaman('form')">📝 Input RAK</button>
+      <nav class="tabs" id="navTabs">
+        <button class="tab-btn active" id="tab-rekap" onclick="gantiHalaman('rekap')">📊 Dashboard</button>
         <button class="tab-btn" id="tab-daftar" onclick="gantiHalaman('daftar')">📋 Daftar Kegiatan</button>
-        <button class="tab-btn" id="tab-rekap" onclick="gantiHalaman('rekap')">📊 Dashboard</button>
-        <button class="tab-btn" id="tab-sumberdana" onclick="gantiHalaman('sumberdana')">💰 Sumber Dana</button>
         <button class="tab-btn" id="tab-kalender" onclick="gantiHalaman('kalender')">📅 Kalender</button>
+        <button class="tab-btn" id="tab-sumberdana" onclick="gantiHalaman('sumberdana')">💰 Sumber Dana</button>
         <button class="tab-btn" id="tab-realisasi" onclick="gantiHalaman('realisasi')">💵 Realisasi Anggaran</button>
+        <button class="tab-btn" id="tab-form" onclick="requireLoginAndDo('form')">📝 Input RAK</button>
+        <button class="tab-btn hidden" id="tab-admin" onclick="gantiHalaman('admin')">🛠️ Panel Admin</button>
       </nav>
+      <div class="sidebar-footer">
+        <!-- Belum login -->
+        <div id="sidebarGuest">
+          <button class="btn-sidebar-login btn-block" onclick="bukaModalLogin()">🔑 Login</button>
+        </div>
+        <!-- Sudah login -->
+        <div id="sidebarUser" class="hidden">
+          <div class="user-info">
+            <span class="user-name" id="userNameDisplay">-</span>
+            <span class="user-role" id="userRoleDisplay">-</span>
+          </div>
+          <button class="btn-logout btn-block" onclick="logoutUI()">🚪 Logout</button>
+        </div>
+      </div>
     </aside>
 
     <!-- ================= KONTEN ================= -->
     <main class="content">
 
       <!-- ========== INPUT RAK ========== -->
-      <section id="halaman-form">
-        <div class="section-header"><h2 id="judulFormRAK">Input Rencana Anggaran Kegiatan (RAK)</h2></div>
-
-        <form id="formRAK" onsubmit="event.preventDefault(); simpanData();">
-          <div class="dash-block">
-            <div class="dash-block-title">1. Identitas Kegiatan</div>
-            <div class="form-grid">
-              <div class="field">
-                <label>Unit</label>
-                <select id="unit" required>
-                  <option value="">Pilih Unit...</option>
-                  <option value="KURIKULUM">Kurikulum</option>
-                  <option value="KESISWAAN">Kesiswaan</option>
-                  <option value="SARANA PRASARANA">Sarana Prasarana</option>
-                  <option value="HUMAS">Humas</option>
-                </select>
-              </div>
-              <div class="field">
-                <label>Program</label>
-                <input type="text" id="program" placeholder="Contoh: PUSH YOUR LIMITS" required>
-              </div>
-              <div class="field">
-                <label>Nama Kegiatan</label>
-                <input type="text" id="kegiatan" placeholder="Nama Kegiatan" required>
-              </div>
-              <div class="field">
-                <label>Penanggung Jawab</label>
-                <input list="listGuru" id="pjInput" placeholder="Ketik nama untuk mencari..." required>
-                <datalist id="listGuru"></datalist>
-              </div>
-              <div class="field">
-                <label>Pelaksanaan</label>
-                <div style="display:flex; gap:6px;">
-                  <select id="tipePelaksanaan" onchange="togglePelaksanaan()" style="max-width:120px;">
-                    <option value="kalender">Kalender</option>
-                    <option value="teks">Manual</option>
-                  </select>
-                  <input type="text" id="inputPelaksanaan" placeholder="Pilih tanggal" required>
-                </div>
-              </div>
-              <div class="field"></div>
-              <div class="field">
-                <label>Indikator Keberhasilan</label>
-                <textarea id="indikator" rows="2" required></textarea>
-              </div>
-              <div class="field">
-                <label>Target / Jaminan Mutu</label>
-                <textarea id="target" rows="2" required></textarea>
-              </div>
-            </div>
-          </div>
-
-          <div class="dash-block">
-            <div class="dash-block-title">
-              <span>2. Rincian Anggaran</span>
-              <button type="button" class="btn-secondary btn-sm" onclick="tambahBaris()">+ Tambah Komponen</button>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Komponen Belanja</th><th>Vol</th><th>Satuan</th><th>Harga (Rp)</th>
-                    <th>Jumlah (Rp)</th><th>SNP</th><th>Sumber Dana</th><th>Aksi</th>
-                  </tr>
-                </thead>
-                <tbody id="bodyRincian"></tbody>
-                <tfoot>
-                  <tr>
-                    <td colspan="4" class="num">TOTAL ANGGARAN KEGIATAN :</td>
-                    <td colspan="4" style="color:#0F9D53; font-size:15px;">Rp <span id="labelGrandTotal">0</span></td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-
-          <div style="display:flex; justify-content:flex-end; gap:10px;">
-            <button type="button" class="btn-secondary" onclick="batalForm()">Batal</button>
-            <button type="submit" class="btn-primary" id="btnSimpan">SIMPAN RENCANA KEGIATAN</button>
-          </div>
-        </form>
-      </section>
-
-      <!-- ========== DASHBOARD ========== -->
       <section id="halaman-rekap" class="hidden">
         <div class="section-header"><h2>Dashboard Rekapitulasi Anggaran</h2></div>
 
@@ -148,6 +79,12 @@
             <div class="hero-value" id="heroTotal">Rp 0</div>
             <div class="hero-sub" id="heroTotalSub">Rencana Anggaran RAKS: Rp 0</div>
             <div class="hero-sub" id="heroTotalStatus" style="font-weight:700; margin-top:6px;"></div>
+          </div>
+          <div class="hero-card accent-green">
+            <div class="hero-label">Total Realisasi</div>
+            <div class="hero-value" id="heroRealisasi">Rp 0</div>
+            <div class="hero-sub" id="heroRealisasiSub">Disetujui: Rp 0 · Pending: Rp 0</div>
+            <div class="hero-sub" id="heroRealisasiStatus" style="font-weight:700; margin-top:6px;"></div>
           </div>
         </div>
 
@@ -220,7 +157,7 @@
               </tr>
             </thead>
             <tbody id="bodySumberDana">
-              <tr><td colspan="8" style="background:var(--gray-light); font-weight:700;">BOS REGULAR (Tahun Anggaran 2026/2027)</td></tr>
+              <tr class="table-section-header"><td colspan="8">BOS REGULAR (Tahun Anggaran 2026/2027)</td></tr>
               <tr class="baris-dana" data-kategori="BOS">
                 <td class="center">1</td><td>BOS REG 2026 Tahap 2</td>
                 <td><input type="number" class="cell-input qty" value="301" oninput="hitungDana()"></td>
@@ -240,7 +177,7 @@
                 <td><input type="number" class="cell-input realisasi readonly" readonly></td>
               </tr>
 
-              <tr><td colspan="8" style="background:var(--gray-light); font-weight:700;">BOS DA (Tahun Anggaran 2026/2027)</td></tr>
+              <tr class="table-section-header"><td colspan="8">BOS DA (Tahun Anggaran 2026/2027)</td></tr>
               <tr class="baris-dana" data-kategori="BOS">
                 <td class="center">3</td><td>BOS DA 2026 Tahap 3</td>
                 <td><input type="number" class="cell-input qty" value="303" oninput="hitungDana()"></td>
@@ -278,7 +215,7 @@
                 <td><input type="number" class="cell-input realisasi readonly" readonly></td>
               </tr>
 
-              <tr><td colspan="8" style="background:var(--gray-light); font-weight:700;">IKT (Tahun Ajar 2026/2027)</td></tr>
+              <tr class="table-section-header"><td colspan="8">IKT (Tahun Ajar 2026/2027)</td></tr>
               <tr class="baris-dana" data-kategori="IKT">
                 <td class="center">7</td><td>IKT Kelas 7</td>
                 <td><input type="number" class="cell-input qty" value="57" oninput="hitungDana()"></td>
@@ -307,7 +244,7 @@
                 <td><input type="number" class="cell-input realisasi readonly" readonly></td>
               </tr>
 
-              <tr><td colspan="8" style="background:var(--gray-light); font-weight:700;">Lain-lain</td></tr>
+              <tr class="table-section-header"><td colspan="8">Lain-lain</td></tr>
               <tr class="baris-dana" data-kategori="LAIN">
                 <td class="center">10</td><td>Komite</td>
                 <td><input type="number" class="cell-input qty" value="140" oninput="hitungDana()"></td>
@@ -320,13 +257,13 @@
             </tbody>
             <tfoot>
               <tr><td colspan="5" class="num" style="color:var(--red);">Sub-Total Pemasukan BOS :</td><td class="num" style="color:var(--red);" id="rekapTotalBOS">Rp 0</td><td></td><td class="num" style="color:var(--red);" id="rekapRealisasiBOS">Rp 0</td></tr>
-              <tr><td colspan="5" class="num" style="color:#B9770E;">Sub-Total Pemasukan IKT :</td><td class="num" style="color:#B9770E;" id="rekapTotalIKT">Rp 0</td><td></td><td class="num" style="color:#B9770E;" id="rekapRealisasiIKT">Rp 0</td></tr>
-              <tr style="background:var(--gray-light);"><td colspan="5" class="num" style="color:var(--red-dark); font-size:14px;">GRAND TOTAL PEMASUKAN :</td><td class="num" style="color:var(--red-dark); font-size:14px;" id="grandTotalDana">Rp 0</td><td></td><td class="num" style="color:#0F9D53; font-size:14px;" id="grandRealisasiDana">Rp 0</td></tr>
+              <tr><td colspan="5" class="num" style="color:var(--amber);">Sub-Total Pemasukan IKT :</td><td class="num" style="color:var(--amber);" id="rekapTotalIKT">Rp 0</td><td></td><td class="num" style="color:var(--amber);" id="rekapRealisasiIKT">Rp 0</td></tr>
+              <tr style="background:var(--border-light);"><td colspan="5" class="num" style="color:var(--red-dark); font-size:14px;">GRAND TOTAL PEMASUKAN :</td><td class="num" style="color:var(--red-dark); font-size:14px;" id="grandTotalDana">Rp 0</td><td></td><td class="num" style="color:#059669; font-size:14px;" id="grandRealisasiDana">Rp 0</td></tr>
             </tfoot>
           </table>
         </div>
-        <div style="text-align:right; margin-top:16px;">
-          <button class="btn-primary" id="btnSimpanDana" onclick="simpanKonfigurasiDana()">💾 Simpan Perubahan Sumber Dana</button>
+        <div class="text-right mt-md">
+          <button class="btn-primary" id="btnSimpanDana" onclick="requireLoginAndDo('simpanDana')">💾 Simpan Perubahan Sumber Dana</button>
         </div>
       </section>
 
@@ -334,11 +271,11 @@
       <section id="halaman-kalender" class="hidden">
         <div class="section-header">
           <h2>Kalender Pelaksanaan Kegiatan</h2>
-          <div style="display:flex; gap:14px; flex-wrap:wrap; font-size:12.5px; font-weight:600;">
-            <label style="color:#198754;"><input type="checkbox" class="filter-chk" value="KURIKULUM" checked onchange="terapkanFilterKalender()"> Kurikulum</label>
-            <label style="color:#0d6efd;"><input type="checkbox" class="filter-chk" value="KESISWAAN" checked onchange="terapkanFilterKalender()"> Kesiswaan</label>
-            <label style="color:#B9770E;"><input type="checkbox" class="filter-chk" value="SARANA PRASARANA" checked onchange="terapkanFilterKalender()"> Sarpras</label>
-            <label style="color:#5B3FBE;"><input type="checkbox" class="filter-chk" value="HUMAS" checked onchange="terapkanFilterKalender()"> Humas</label>
+          <div class="kalender-filter">
+            <label class="kalender-filter-label" style="color:#059669;"><input type="checkbox" class="filter-chk" value="KURIKULUM" checked onchange="terapkanFilterKalender()"> Kurikulum</label>
+            <label class="kalender-filter-label" style="color:#2563EB;"><input type="checkbox" class="filter-chk" value="KESISWAAN" checked onchange="terapkanFilterKalender()"> Kesiswaan</label>
+            <label class="kalender-filter-label" style="color:#D97706;"><input type="checkbox" class="filter-chk" value="SARANA PRASARANA" checked onchange="terapkanFilterKalender()"> Sarpras</label>
+            <label class="kalender-filter-label" style="color:#7C3AED;"><input type="checkbox" class="filter-chk" value="HUMAS" checked onchange="terapkanFilterKalender()"> Humas</label>
           </div>
         </div>
         <div class="dash-block"><div id="calendar"></div></div>
@@ -346,72 +283,305 @@
 
       <!-- ========== REALISASI ANGGARAN ========== -->
       <section id="halaman-realisasi" class="hidden">
-        <div class="section-header"><h2>💵 Pengajuan &amp; Pelaporan Penggunaan Anggaran</h2></div>
+        <div class="section-header"><h2>💵 Realisasi Anggaran</h2></div>
 
-        <div class="dash-block">
-          <div class="dash-block-title">Ajukan Penggunaan Anggaran</div>
-          <p style="font-size:12.5px; color:var(--gray); margin-top:-6px;">Hanya kegiatan yang RAKS-nya sudah <span class="badge badge-ungu">FINAL 🔒</span> yang bisa mengajukan realisasi.</p>
-          <div class="form-grid">
-            <div class="field">
-              <label>Pilih Kegiatan (FINAL)</label>
-              <select id="realKegiatanId" onchange="tampilkanSisaAnggaran()"></select>
-              <div class="form-text" id="realSisaInfo"></div>
+        <!-- BLOK 1: Form Pengajuan (collapse) -->
+        <details class="dash-block form-collapse" id="blokFormRealisasi">
+          <summary class="dash-block-title" style="cursor:pointer;">📝 Ajukan Penggunaan Anggaran</summary>
+          <div style="padding-top:8px;">
+            <p class="dash-desc" style="margin-top:-6px;">Hanya kegiatan yang RAKS-nya sudah <span class="badge badge-ungu">FINAL 🔒</span> yang bisa mengajukan realisasi. <strong>Wajib login</strong> untuk mengajukan.</p>
+            <div class="form-grid">
+              <div class="field">
+                <label>Pilih Kegiatan (FINAL)</label>
+                <select id="realKegiatanId" onchange="tampilkanSisaAnggaran()"></select>
+                <div class="form-text" id="realSisaInfo"></div>
+              </div>
+              <div class="field">
+                <label>Tanggal Penggunaan</label>
+                <input type="text" id="realTanggal" placeholder="dd-mm-yyyy">
+              </div>
+              <div class="field">
+                <label>Jumlah (Rp)</label>
+                <input type="number" id="realJumlah">
+              </div>
+              <div class="field">
+                <label>Komponen / Untuk Apa</label>
+                <input type="text" id="realKomponen" placeholder="Contoh: ATK, Konsumsi, dsb">
+              </div>
+              <div class="field">
+                <label>Diajukan Oleh</label>
+                <input list="listGuru" id="realDiajukanOleh" placeholder="Nama pengaju">
+                <datalist id="listGuru"></datalist>
+              </div>
+              <div class="field">
+                <label>Link Bukti (nota/kwitansi di Drive)</label>
+                <input type="text" id="realBukti" placeholder="https://drive.google.com/...">
+              </div>
+              <div class="field" style="grid-column: 1 / -1;">
+                <label>Keterangan</label>
+                <textarea id="realKeterangan" rows="2"></textarea>
+              </div>
             </div>
-            <div class="field">
-              <label>Tanggal Penggunaan</label>
-              <input type="text" id="realTanggal" placeholder="dd-mm-yyyy">
-            </div>
-            <div class="field">
-              <label>Jumlah (Rp)</label>
-              <input type="number" id="realJumlah">
-            </div>
-            <div class="field">
-              <label>Komponen / Untuk Apa</label>
-              <input type="text" id="realKomponen" placeholder="Contoh: ATK, Konsumsi, dsb">
-            </div>
-            <div class="field">
-              <label>Diajukan Oleh</label>
-              <input list="listGuru" id="realDiajukanOleh" placeholder="Nama pengaju">
-            </div>
-            <div class="field">
-              <label>Link Bukti (nota/kwitansi di Drive)</label>
-              <input type="text" id="realBukti" placeholder="https://drive.google.com/...">
-            </div>
-            <div class="field" style="grid-column: 1 / -1;">
-              <label>Keterangan</label>
-              <textarea id="realKeterangan" rows="2"></textarea>
+            <div class="text-right mt-sm">
+              <button class="btn-primary" onclick="requireLoginAndDo('ajukanRealisasi')">📤 Ajukan Penggunaan</button>
             </div>
           </div>
-          <div style="text-align:right; margin-top:6px;">
-            <button class="btn-primary" onclick="ajukanRealisasiUI()">📤 Ajukan Penggunaan</button>
+        </details>
+
+        <!-- BLOK 2: Antrean Persetujuan (khusus kepsek/admin) -->
+        <div class="dash-block" id="blokAntreanRealisasi">
+          <div class="dash-block-title">
+            <span>⏳ Antrean Persetujuan</span>
+            <button class="btn-secondary btn-sm" onclick="loadAntreanPersetujuan()">🔄 Refresh</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Kegiatan</th><th>Tgl</th><th>Komponen</th><th class="num">Jumlah</th><th>Pengaju</th><th class="center">Aksi</th></tr></thead>
+              <tbody id="bodyAntreanRealisasi"></tbody>
+            </table>
           </div>
         </div>
 
+        <!-- BLOK 3: Ringkasan Anggaran (compact) -->
         <div class="dash-block">
-          <div class="dash-block-title">Ringkasan Anggaran vs Realisasi per Kegiatan</div>
+          <div class="dash-block-title">Ringkasan Anggaran vs Realisasi</div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Kegiatan</th><th class="num">Dianggarkan</th><th class="num">Disetujui</th><th class="num">Pending</th><th class="num">Sisa</th><th>Progress</th></tr></thead>
+              <thead><tr><th>Kegiatan</th><th class="num">Dianggarkan</th><th class="num">Realisasi</th><th class="num">Sisa</th><th style="min-width:120px">Progress</th></tr></thead>
               <tbody id="bodyRingkasanAnggaran"></tbody>
             </table>
           </div>
         </div>
 
+        <!-- BLOK 4: Riwayat Lengkap (compact + filter) -->
         <div class="dash-block">
           <div class="dash-block-title">
-            <span>Riwayat Pengajuan Realisasi</span>
-            <button class="btn-secondary btn-sm" onclick="loadRiwayatRealisasi()">🔄 Refresh</button>
+            <span>Riwayat Pengajuan</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <select id="filterStatusRiwayat" onchange="terapkanFilterRiwayat()" style="font-size:12px; padding:4px 8px; border:1px solid var(--border); border-radius:6px;">
+                <option value="">Semua Status</option>
+                <option value="Diajukan">Diajukan</option>
+                <option value="Disetujui">Disetujui</option>
+                <option value="Ditolak">Ditolak</option>
+              </select>
+              <button class="btn-secondary btn-sm" onclick="loadRiwayatRealisasi()">🔄 Refresh</button>
+            </div>
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>ID</th><th>Kegiatan</th><th>Tgl</th><th>Komponen</th><th class="num">Jumlah</th><th>Diajukan Oleh</th><th>Status</th><th>Aksi</th></tr></thead>
+              <thead><tr><th>Tgl</th><th>Kegiatan</th><th>Komponen</th><th class="num">Jumlah</th><th class="center">Status</th><th>Keterangan</th></tr></thead>
               <tbody id="bodyRiwayatRealisasi"></tbody>
             </table>
           </div>
         </div>
       </section>
 
+      <!-- ========== INPUT RAK (butuh login) ========== -->
+      <section id="halaman-form">
+        <div class="section-header"><h2 id="judulFormRAK">Input Rencana Anggaran Kegiatan (RAK)</h2></div>
+
+        <form id="formRAK" onsubmit="event.preventDefault(); simpanData();">
+          <div class="dash-block">
+            <div class="dash-block-title">1. Identitas Kegiatan</div>
+            <div class="form-grid">
+              <div class="field">
+                <label>Unit</label>
+                <select id="unit" required>
+                  <option value="">Pilih Unit...</option>
+                  <option value="KURIKULUM">Kurikulum</option>
+                  <option value="KESISWAAN">Kesiswaan</option>
+                  <option value="SARANA PRASARANA">Sarana Prasarana</option>
+                  <option value="HUMAS">Humas</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Program</label>
+                <input type="text" id="program" placeholder="Contoh: PUSH YOUR LIMITS" required>
+              </div>
+              <div class="field">
+                <label>Nama Kegiatan</label>
+                <input type="text" id="kegiatan" placeholder="Nama Kegiatan" required>
+              </div>
+              <div class="field">
+                <label>Penanggung Jawab</label>
+                <input list="listGuruForm" id="pjInput" placeholder="Ketik nama untuk mencari..." required>
+                <datalist id="listGuruForm"></datalist>
+              </div>
+              <div class="field">
+                <label>Pelaksanaan</label>
+                <div style="display:flex; gap:6px;">
+                  <select id="tipePelaksanaan" onchange="togglePelaksanaan()" style="max-width:120px;">
+                    <option value="kalender">Kalender</option>
+                    <option value="teks">Manual</option>
+                  </select>
+                  <input type="text" id="inputPelaksanaan" placeholder="Pilih tanggal" required>
+                </div>
+              </div>
+              <div class="field"></div>
+              <div class="field">
+                <label>Indikator Keberhasilan</label>
+                <textarea id="indikator" rows="2" required></textarea>
+              </div>
+              <div class="field">
+                <label>Target / Jaminan Mutu</label>
+                <textarea id="target" rows="2" required></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="dash-block">
+            <div class="dash-block-title">
+              <span>2. Rincian Anggaran</span>
+              <button type="button" class="btn-secondary btn-sm" onclick="tambahBaris()">+ Tambah Komponen</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Komponen Belanja</th><th>Vol</th><th>Satuan</th><th>Harga (Rp)</th>
+                    <th>Jumlah (Rp)</th><th>SNP</th><th>Sumber Dana</th><th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="bodyRincian"></tbody>
+                <tfoot>
+                  <tr>
+                    <td colspan="4" class="num">TOTAL ANGGARAN KEGIATAN :</td>
+                    <td colspan="4" style="color:#059669; font-size:15px;">Rp <span id="labelGrandTotal">0</span></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          <div class="gap-row" style="justify-content:flex-end;">
+            <button type="button" class="btn-secondary" onclick="batalForm()">Batal</button>
+            <button type="submit" class="btn-primary" id="btnSimpan">SIMPAN RENCANA KEGIATAN</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- ========== PANEL ADMIN ========== -->
+      <section id="halaman-admin" class="hidden">
+        <div class="section-header"><h2>🛠️ Panel Admin</h2></div>
+
+        <div class="dash-block">
+          <div class="dash-block-title">Kunci Massal RAKS</div>
+          <p class="dash-desc" style="margin-top:-6px;">
+            Kunci semua kegiatan yang masih berstatus DRAFT menjadi FINAL sekaligus — cocok dipakai saat batas waktu
+            pengajuan RAKS berakhir, tanpa perlu mengunci satu per satu di tab Daftar Kegiatan. Bisa dibuka kembali kapan saja.
+          </p>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn-danger" onclick="kunciSemuaUI()">🔒 Kunci SEMUA Kegiatan Sekaligus</button>
+            <button class="btn-warning" onclick="bukaSemuaUI()">🔓 Buka Kunci SEMUA Kegiatan</button>
+          </div>
+        </div>
+
+        <div class="dash-block">
+          <div class="dash-block-title">Kontrol Akses Tampilan (Tab)</div>
+          <p class="dash-desc" style="margin-top:-6px;">
+            Nonaktifkan tab tertentu untuk menyembunyikannya dari pengguna biasa (bukan admin) — misalnya menutup
+            sementara tab "Input RAK" setelah periode pengajuan ditutup. Admin yang sedang login tetap bisa melihat semua tab.
+          </p>
+          <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:16px;">
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600;"><input type="checkbox" id="chkAkses-form"> 📝 Input RAK</label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600;"><input type="checkbox" id="chkAkses-daftar"> 📋 Daftar Kegiatan</label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600;"><input type="checkbox" id="chkAkses-rekap"> 📊 Dashboard Rekapitulasi</label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600;"><input type="checkbox" id="chkAkses-sumberdana"> 💰 Sumber Dana</label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600;"><input type="checkbox" id="chkAkses-kalender"> 📅 Kalender Kegiatan</label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600;"><input type="checkbox" id="chkAkses-realisasi"> 💵 Realisasi Anggaran</label>
+          </div>
+          <div class="text-right mt-sm">
+            <button class="btn-primary" onclick="simpanPengaturanAksesUI()">💾 Simpan Pengaturan Akses</button>
+          </div>
+        </div>
+
+        <div class="dash-block">
+          <div class="dash-block-title">Manajemen Pengguna</div>
+          <p class="dash-desc" style="margin-top:-6px;">
+            Kelola akun pengguna: buat akun baru, edit data, dan reset password. Role <strong>Waka</strong> wajib memilih unit.
+          </p>
+
+          <!-- Form Buat User Baru -->
+          <div style="background:var(--bg-secondary); border-radius:10px; padding:16px; margin-bottom:20px;">
+            <div style="font-weight:600; margin-bottom:12px; font-size:13px;">➕ Tambah Pengguna Baru</div>
+            <form id="formUser" onsubmit="event.preventDefault(); createUserUI();" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap:10px; align-items:end;">
+              <div class="field">
+                <label>Username</label>
+                <input type="text" id="newUsername" placeholder="username" required>
+              </div>
+              <div class="field">
+                <label>Password</label>
+                <input type="password" id="newPassword" placeholder="minimal 6 karakter" required>
+              </div>
+              <div class="field">
+                <label>Nama Lengkap</label>
+                <input type="text" id="newNama" placeholder="Nama Lengkap" required>
+              </div>
+              <div class="field">
+                <label>Role</label>
+                <select id="newRole" onchange="toggleUnitField()" required>
+                  <option value="waka">📋 Waka</option>
+                  <option value="kepsek">🏫 Kepsek</option>
+                  <option value="admin">👑 Admin</option>
+                </select>
+              </div>
+              <div class="field" id="unitFieldWrapper" style="display:none;">
+                <label>Unit</label>
+                <select id="newUnit">
+                  <option value="">Pilih Unit...</option>
+                  <option value="KURIKULUM">Kurikulum</option>
+                  <option value="KESISWAAN">Kesiswaan</option>
+                  <option value="SARANA PRASARANA">Sarana Prasarana</option>
+                  <option value="HUMAS">Humas</option>
+                </select>
+              </div>
+              <div class="field">
+                <button type="submit" class="btn-primary" id="btnCreateUser" style="margin-top:auto;">💾 Simpan</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Tabel Daftar User -->
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Username</th><th>Nama</th><th>Role</th><th>Unit</th><th>Status</th><th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="bodyTabelUsers">
+                <tr class="table-loading-row"><td colspan="6">Memuat data user...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
     </main>
+  </div>
+
+  <!-- ================= MODAL LOGIN ================= -->
+  <div class="modal-overlay hidden" id="modalLogin">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🔑 Login</h3>
+        <button class="btn-close" onclick="closeModal('modalLogin')">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="formLogin" onsubmit="event.preventDefault(); prosesLogin();">
+          <div class="field" style="margin-bottom:14px;">
+            <label>Username</label>
+            <input type="text" id="loginUsername" placeholder="Masukkan username" required autocomplete="username">
+          </div>
+          <div class="field" style="margin-bottom:20px;">
+            <label>Password</label>
+            <input type="password" id="loginPassword" placeholder="Masukkan password" required autocomplete="current-password">
+          </div>
+          <div id="loginError" class="login-error hidden"></div>
+          <button type="submit" class="btn-primary btn-block" id="btnProsesLogin">Masuk</button>
+        </form>
+      </div>
+    </div>
   </div>
 
   <!-- ================= MODAL DETAIL ================= -->
@@ -449,6 +619,52 @@
       <div class="modal-footer">
         <button class="btn-primary" onclick="downloadExcelDetail()">📊 Download Excel Rincian</button>
         <button class="btn-secondary" onclick="closeModal('modalDetail')">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL EDIT USER ================= -->
+  <div class="modal-overlay hidden" id="modalEditUser">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>✏️ Edit Pengguna</h3>
+        <button class="btn-close" onclick="closeModal('modalEditUser')">×</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editUsername">
+        <div class="field" style="margin-bottom:14px;">
+          <label>Nama Lengkap</label>
+          <input type="text" id="editNama" required>
+        </div>
+        <div class="field" style="margin-bottom:14px;">
+          <label>Role</label>
+          <select id="editRole" onchange="toggleEditUnitField()" required>
+            <option value="waka">📋 Waka</option>
+            <option value="kepsek">🏫 Kepsek</option>
+            <option value="admin">👑 Admin</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:14px;" id="editUnitWrapper">
+          <label>Unit</label>
+          <select id="editUnit">
+            <option value="">Pilih Unit...</option>
+            <option value="KURIKULUM">Kurikulum</option>
+            <option value="KESISWAAN">Kesiswaan</option>
+            <option value="SARANA PRASARANA">Sarana Prasarana</option>
+            <option value="HUMAS">Humas</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:14px;">
+          <label>Status</label>
+          <select id="editStatus" required>
+            <option value="aktif">Aktif</option>
+            <option value="nonaktif">Nonaktif</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" id="btnUpdateUser" onclick="updateUserUI()">💾 Simpan Perubahan</button>
+        <button class="btn-secondary" onclick="closeModal('modalEditUser')">Batal</button>
       </div>
     </div>
   </div>
