@@ -2,7 +2,7 @@
 // KONFIGURASI API — WAJIB DIISI SEBELUM DIPAKAI
 // =========================================================================
 const API_URL = "https://script.google.com/macros/s/AKfycbz25Fw_ceLoiFivtuYqHd9V5cM7phQ82fBE-GfhsqChGGMtTbzhAm2SDMYxc0sNOb1k/exec";
-const API_KEY = "sk_live_4zXHlUp57mSaUjEcXrdXuaw8UrHGsUxK"; // harus sama persis dengan Script Properties API_KEY
+const API_KEY = "sk_live_4zXHlUp57mSaUjEcXrdXuaw8UrHGsUxK";
 
 // =========================================================================
 // STATE GLOBAL
