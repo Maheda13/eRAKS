@@ -3,7 +3,6 @@
 // =========================================================================
 const API_URL = "https://script.google.com/macros/s/AKfycbyhectZhAPlE0uvhuKEKFZoriPjXXgDiUCPBLdnnLgOZXtBswPUJRwu5top6tdRkTfb/exec";
 const API_KEY = "sk_live_4zXHlUp57mSaUjEcXrdXuaw8UrHGsUxK";
-
 // =========================================================================
 // STATE GLOBAL
 // =========================================================================
@@ -20,7 +19,7 @@ let semuaDataRealisasiCache = []; // untuk filter riwayat
 let pengaturanAksesCache = null;
 const kegiatanCache = new Map(); // cache getKegiatanById
 
-const DAFTAR_TAB_KEY = ['form', 'daftar', 'rekap', 'sumberdana', 'kalender', 'realisasi'];
+const DAFTAR_TAB_KEY = ['form', 'daftar', 'rekap', 'sumberdana', 'rekapAnggaran', 'transfer', 'kalender', 'realisasi'];
 
 // =========================================================================
 // XSS SANITIZATION — mencegah injeksi HTML dari data user
@@ -299,7 +298,15 @@ function gantiHalaman(halaman) {
   document.getElementById('sidebar').classList.remove('mobile-open');
   document.getElementById('navBackdrop').classList.add('hidden');
 
-  if (halaman === 'realisasi') { loadRingkasanAnggaran(); loadRiwayatRealisasi(); loadKegiatanFinalUntukRealisasi(); loadKegiatanFinalUntukTransfer(); loadAntreanPersetujuan(); }
+  if (halaman === 'realisasi') {
+    callAPI('getRingkasanAnggaran').then(data => { daftarRingkasanCache = data || []; }).catch(()=>{});
+    loadRiwayatRealisasi(); loadKegiatanFinalUntukRealisasi(); loadAntreanPersetujuan();
+  }
+  if (halaman === 'rekapAnggaran') { loadRingkasanAnggaran(); }
+  if (halaman === 'transfer') {
+    callAPI('getRingkasanAnggaran').then(data => { daftarRingkasanCache = data || []; }).catch(()=>{});
+    loadKegiatanFinalUntukTransfer(); loadAntreanTransfer(); loadRiwayatTransfer();
+  }
   if (halaman === 'admin') { isiFormPengaturanAksesAdmin(); loadUsers(); }
 }
 
@@ -1117,6 +1124,7 @@ function renderRingkasanPaged() {
         <td>${esc_(r.identitas.nama)}<br><span style="font-size:11px;color:var(--text-secondary)">${esc_(r.identitas.unit)}</span></td>
         <td class="num">${formatRupiah(r.totalAnggaran)}</td>
         <td class="num" style="color:var(--green);font-weight:600">${formatRupiah(totalRealisasi)}</td>
+        <td class="num" style="color:var(--amber);font-weight:600">${formatRupiah(r.transferKeluar || 0)}</td>
         <td class="num" style="font-weight:700">${formatRupiah(r.sisaAnggaran)}</td>
         <td>
           <div class="status-bar">
@@ -1133,7 +1141,8 @@ function renderRingkasanPaged() {
 
 function loadRingkasanAnggaran() {
   ringkasanPage = 1;
-  document.getElementById('searchRingkasan').value = '';
+  const searchEl = document.getElementById('searchRingkasan');
+  if (searchEl) searchEl.value = '';
   return callAPI('getRingkasanAnggaran').then(data => {
     daftarRingkasanCache = data || [];
     renderRingkasanPaged();
@@ -1243,9 +1252,6 @@ function loadAntreanPersetujuan() {
         </td>
       </tr>`;
     }).join('');
-  }).then(() => {
-    // Juga muat antrean transfer
-    loadAntreanTransfer();
   }).catch(err => console.error(err));
 }
 
@@ -1257,7 +1263,6 @@ function setujuiRealisasiUI(idRealisasi) {
     loadRingkasanAnggaran();
     loadRiwayatRealisasi();
     loadAntreanPersetujuan();
-    loadAntreanTransfer();
     loadKegiatanFinalUntukRealisasi(); // refresh sisa anggaran
   }).catch(err => toast("Gagal: " + err.message, "error"));
 }
@@ -1271,7 +1276,6 @@ function tolakRealisasiUI(idRealisasi) {
     loadRingkasanAnggaran();
     loadRiwayatRealisasi();
     loadAntreanPersetujuan();
-    loadAntreanTransfer();
     loadKegiatanFinalUntukRealisasi(); // refresh sisa anggaran
   }).catch(err => toast("Gagal: " + err.message, "error"));
 }
@@ -1418,6 +1422,34 @@ function tolakTransferUI(idTransfer) {
     toast(response, "success");
     loadAntreanTransfer();
   }).catch(err => toast("Gagal: " + err.message, "error"));
+}
+
+function loadRiwayatTransfer() {
+  const tbody = document.getElementById('bodyRiwayatTransfer');
+  if (!tbody) return Promise.resolve();
+  return callAPI('getAllTransfer').then(data => {
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr class="table-loading-row"><td colspan="6">Belum ada riwayat transfer.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(t => {
+      let badgeClass = 'badge';
+      if (t.status === 'Disetujui') badgeClass = 'badge badge-hijau';
+      else if (t.status === 'Diajukan') badgeClass = 'badge badge-amber';
+      else if (t.status === 'Ditolak') badgeClass = 'badge badge-merah';
+      const keterangan = t.status === 'Ditolak'
+        ? `<span style="font-size:11px;color:var(--text-secondary)">Ditolak: ${esc_(t.alasan || '-')}</span>`
+        : (t.diputuskanOleh ? `Disetujui oleh ${esc_(t.diputuskanOleh)}` : '—');
+      return `<tr>
+        <td>${esc_(t.tanggalDiajukan)}</td>
+        <td>${esc_(t.namaSumber)}<br><span style="font-size:11px;color:var(--text-secondary)">${esc_(t.idSumber)}</span></td>
+        <td class="num" style="font-weight:600;color:#7C3AED">${formatRupiah(t.jumlah)}</td>
+        <td>${esc_(t.namaKegiatanTujuan)}<br><span style="font-size:11px;color:var(--text-secondary)">${esc_(t.unitTujuan)}</span></td>
+        <td class="center"><span class="${badgeClass}">${esc_(t.status)}</span></td>
+        <td>${keterangan}</td>
+      </tr>`;
+    }).join('');
+  }).catch(err => console.error(err));
 }
 
 // =========================================================================
