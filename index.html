@@ -20,7 +20,7 @@
   <!-- TOPBAR MOBILE -->
   <div class="mobile-topbar">
     <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
-    <div class="mobile-topbar-title">RAKS <span>DAFI</span> 5.1 </div>
+    <div class="mobile-topbar-title">RAKS <span>DAFI</span> 5.2</div>
   </div>
   <div class="mobile-nav-backdrop hidden" id="navBackdrop" onclick="toggleSidebar()"></div>
 
@@ -28,8 +28,8 @@
     <!-- ================= SIDEBAR ================= -->
     <aside class="sidebar" id="sidebar">
       <div class="brand">
-        <div class="brand-mark">RAKS <span>DAFI</span></div>
-        <div class="brand-tagline">RENCANA ANGGARAN KEGIATAN<br>SMPIT DARUL FIKRI</div>
+        <div class="brand-mark">RAKS <span>DAFI</span> 5.2</div>
+        <div class="brand-tagline">RENCANA ANGGARAN KEGIATAN<br>SMP DAFI</div>
       </div>
       <nav class="tabs" id="navTabs">
         <button class="tab-btn active" id="tab-rekap" onclick="gantiHalaman('rekap')">📊 Dashboard</button>
@@ -291,9 +291,12 @@
           <div style="padding-top:8px;">
             <p class="dash-desc" style="margin-top:-6px;">Hanya kegiatan yang RAKS-nya sudah <span class="badge badge-ungu">FINAL 🔒</span> yang bisa mengajukan realisasi. <strong>Wajib login</strong> untuk mengajukan.</p>
             <div class="form-grid">
-              <div class="field">
+              <div class="field" style="grid-column: 1 / -1;">
                 <label>Pilih Kegiatan (FINAL)</label>
-                <select id="realKegiatanId" onchange="tampilkanSisaAnggaran()"></select>
+                <div class="searchable-select">
+                  <input type="text" id="searchKegiatan" placeholder="🔍 Ketik nama kegiatan untuk mencari..." oninput="filterKegiatanSelect()" autocomplete="off">
+                  <select id="realKegiatanId" onchange="tampilkanSisaAnggaran()"></select>
+                </div>
                 <div class="form-text" id="realSisaInfo"></div>
               </div>
               <div class="field">
@@ -310,7 +313,7 @@
               </div>
               <div class="field">
                 <label>Diajukan Oleh</label>
-                <input list="listGuru" id="realDiajukanOleh" placeholder="Nama pengaju">
+                <input type="text" list="listGuru" id="realDiajukanOleh" placeholder="Nama pengaju">
                 <datalist id="listGuru"></datalist>
               </div>
               <div class="field">
@@ -328,6 +331,57 @@
           </div>
         </details>
 
+        <!-- BLOK 1b: Transfer Anggaran (collapse) -->
+        <details class="dash-block form-collapse" id="blokTransferAnggaran">
+          <summary class="dash-block-title" style="cursor:pointer;">🔄 Transfer Anggaran</summary>
+          <div style="padding-top:8px;">
+            <p class="dash-desc" style="margin-top:-6px;">Pindahkan sisa anggaran dari kegiatan <strong>FINAL</strong> untuk membuat kegiatan baru. Butuh <span class="badge badge-amber">persetujuan</span> kepsek/admin.</p>
+            <div class="form-grid">
+              <div class="field" style="grid-column: 1 / -1;">
+                <label>Kegiatan Sumber (FINAL)</label>
+                <div class="searchable-select">
+                  <input type="text" id="searchKegiatanTransfer" placeholder="🔍 Ketik nama kegiatan untuk mencari..." oninput="filterKegiatanTransferSelect()" autocomplete="off">
+                  <select id="transferSumberId" onchange="tampilkanSisaTransfer()"></select>
+                </div>
+                <div class="form-text" id="transferSisaInfo"></div>
+              </div>
+              <div class="field">
+                <label>Jumlah Transfer (Rp)</label>
+                <input type="number" id="transferJumlah">
+              </div>
+              <div class="field">
+                <label>Unit Tujuan</label>
+                <select id="transferUnitTujuan">
+                  <option value="">Pilih Unit...</option>
+                  <option value="KURIKULUM">Kurikulum</option>
+                  <option value="KESISWAAN">Kesiswaan</option>
+                  <option value="SARANA PRASARANA">Sarana Prasarana</option>
+                  <option value="HUMAS">Humas</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Program Tujuan</label>
+                <input type="text" id="transferProgramTujuan" placeholder="Contoh: PENGELOLAAN SARANA">
+              </div>
+              <div class="field">
+                <label>Nama Kegiatan Tujuan</label>
+                <input type="text" id="transferNamaKegiatan" placeholder="Nama kegiatan baru" required>
+              </div>
+              <div class="field">
+                <label>PJ Tujuan</label>
+                <input type="text" list="listGuruForm" id="transferPJ" placeholder="Ketik nama untuk mencari...">
+              </div>
+              <div class="field">
+                <label>Komponen / Keterangan</label>
+                <input type="text" id="transferKomponen" placeholder="Contoh: ATK, Konsumsi, dsb">
+              </div>
+            </div>
+            <div class="text-right mt-sm">
+              <button class="btn-primary" onclick="ajukanTransferUI()" style="background:#7C3AED;">🔄 Ajukan Transfer</button>
+            </div>
+          </div>
+        </details>
+
         <!-- BLOK 2: Antrean Persetujuan (khusus kepsek/admin) -->
         <div class="dash-block" id="blokAntreanRealisasi">
           <div class="dash-block-title">
@@ -340,16 +394,33 @@
               <tbody id="bodyAntreanRealisasi"></tbody>
             </table>
           </div>
+
+          <div id="blokAntreanTransfer" style="display:none; margin-top:12px; border-top:1px solid var(--border-light); padding-top:12px;">
+            <div style="font-weight:600; font-size:13px; margin-bottom:8px;">🔄 Transfer Anggaran Menunggu Persetujuan</div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Sumber</th><th class="num">Jumlah</th><th>Tujuan</th><th>Pengaju</th><th class="center">Aksi</th></tr></thead>
+                <tbody id="bodyAntreanTransfer"></tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
         <!-- BLOK 3: Ringkasan Anggaran (compact) -->
         <div class="dash-block">
-          <div class="dash-block-title">Ringkasan Anggaran vs Realisasi</div>
+          <div class="dash-block-title">
+            <span>Ringkasan Anggaran vs Realisasi</span>
+            <input type="text" id="searchRingkasan" placeholder="🔍 Cari kegiatan..." oninput="renderRingkasanPaged()" class="table-search-input">
+          </div>
           <div class="table-wrap">
             <table>
               <thead><tr><th>Kegiatan</th><th class="num">Dianggarkan</th><th class="num">Realisasi</th><th class="num">Sisa</th><th style="min-width:120px">Progress</th></tr></thead>
               <tbody id="bodyRingkasanAnggaran"></tbody>
             </table>
+          </div>
+          <div class="table-footer">
+            <div class="table-info" id="infoRingkasan"></div>
+            <div class="pagination" id="paginationRingkasan"></div>
           </div>
         </div>
 
@@ -358,6 +429,7 @@
           <div class="dash-block-title">
             <span>Riwayat Pengajuan</span>
             <div style="display:flex; align-items:center; gap:8px;">
+              <input type="text" id="searchRiwayat" placeholder="🔍 Cari kegiatan/komponen..." oninput="terapkanFilterRiwayat()" class="table-search-input">
               <select id="filterStatusRiwayat" onchange="terapkanFilterRiwayat()" style="font-size:12px; padding:4px 8px; border:1px solid var(--border); border-radius:6px;">
                 <option value="">Semua Status</option>
                 <option value="Diajukan">Diajukan</option>
@@ -372,6 +444,10 @@
               <thead><tr><th>Tgl</th><th>Kegiatan</th><th>Komponen</th><th class="num">Jumlah</th><th class="center">Status</th><th>Keterangan</th></tr></thead>
               <tbody id="bodyRiwayatRealisasi"></tbody>
             </table>
+          </div>
+          <div class="table-footer">
+            <div class="table-info" id="infoRiwayat"></div>
+            <div class="pagination" id="paginationRiwayat"></div>
           </div>
         </div>
       </section>
@@ -404,7 +480,7 @@
               </div>
               <div class="field">
                 <label>Penanggung Jawab</label>
-                <input list="listGuruForm" id="pjInput" placeholder="Ketik nama untuk mencari..." required>
+                <input type="text" list="listGuruForm" id="pjInput" placeholder="Ketik nama untuk mencari..." required>
                 <datalist id="listGuruForm"></datalist>
               </div>
               <div class="field">
@@ -425,6 +501,10 @@
               <div class="field">
                 <label>Target / Jaminan Mutu</label>
                 <textarea id="target" rows="2" required></textarea>
+              </div>
+              <div class="field" style="grid-column: 1 / -1;">
+                <label>Catatan <span style="font-weight:400;color:var(--text-secondary);font-size:11px">— referensi dokumen resmi, hanya terlihat oleh yang login</span></label>
+                <textarea id="catatan" rows="2" placeholder="Contoh: Sesuai SK Kepala Sekolah No. 001/SK-DAFI/VIII/2026"></textarea>
               </div>
             </div>
           </div>
@@ -604,6 +684,7 @@
             <div class="detail-row"><span class="dl-label">Indikator Keberhasilan</span><span class="dl-value" id="detIndikator"></span></div>
             <div class="detail-row"><span class="dl-label">Target Capaian</span><span class="dl-value" id="detTarget"></span></div>
             <div class="detail-row"><span class="dl-label">Status</span><span class="dl-value" id="detStatus"></span></div>
+            <div class="detail-row" id="detCatatanRow" style="display:none;"><span class="dl-label">Catatan</span><span class="dl-value" id="detCatatan" style="color:var(--text-secondary);font-style:italic"></span></div>
           </div>
         </div>
 
