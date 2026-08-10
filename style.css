@@ -1,3 +1,9 @@
+/* ============================================================
+   RAKS — Minimalist Modern Design System
+   SMPIT Darul Fikri
+   ============================================================ */
+
+/* ---------- DESIGN TOKENS ---------- */
 :root {
   /* Brand — softened red */
   --red: #DC2626;
@@ -205,7 +211,7 @@ button, input, select, textarea {
 /* ================================================================
    HERO / STAT CARDS
    ================================================================ */
-.hero-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.hero-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px; }
 
 .hero-card {
   background: linear-gradient(135deg, #111827 0%, #1F2937 100%);
@@ -264,6 +270,25 @@ button, input, select, textarea {
 }
 .form-collapse[open] > summary::before { transform: rotate(90deg); }
 .form-collapse > summary + div { padding: 0 20px 16px; }
+
+.searchable-select { position: relative; }
+.searchable-select input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 6px;
+  box-sizing: border-box;
+  background: var(--bg);
+  transition: border-color 0.2s;
+}
+.searchable-select input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(180,40,50,0.1);
+}
+.searchable-select select { width: 100%; }
 
 .status-legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 10px; }
 .status-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
@@ -345,6 +370,7 @@ td.mono { font-family: var(--font-mono); font-size: 12px; }
 .badge-amber { background: var(--amber-light); color: var(--amber); }
 .badge-merah { background: var(--red-light); color: var(--red-dark); }
 .badge-ungu { background: var(--purple-light); color: var(--purple); }
+.badge-info { background: #EFF6FF; color: #2563EB; }
 
 /* ================================================================
    ROW ACTIONS (table action buttons)
@@ -453,6 +479,32 @@ td.mono { font-family: var(--font-mono); font-size: 12px; }
 @keyframes loading-slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
 
 .table-loading-row td { text-align: center; color: var(--text-muted); padding: 28px; font-size: 13px; }
+
+/* Table search input */
+.table-search-input {
+  font-size: 12px; padding: 5px 10px; border: 1px solid var(--border);
+  border-radius: 6px; width: 200px; transition: border-color 0.2s;
+}
+.table-search-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(180,40,50,0.08); }
+
+/* Table footer: info + pagination */
+.table-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border-top: 1px solid var(--border-light);
+  font-size: 12px; color: var(--text-secondary); flex-wrap: wrap; gap: 8px;
+}
+.table-info { white-space: nowrap; }
+.pagination { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.pagination button {
+  min-width: 30px; height: 30px; padding: 0 8px; border: 1px solid var(--border);
+  border-radius: 6px; background: var(--surface); color: var(--text);
+  font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s;
+}
+.pagination button:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+.pagination button.active {
+  background: var(--primary); color: #fff; border-color: var(--primary); font-weight: 700;
+}
+.pagination button:disabled { opacity: 0.4; cursor: default; }
 
 /* ================================================================
    CHART CARD
