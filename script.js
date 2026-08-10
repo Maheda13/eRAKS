@@ -1,7 +1,7 @@
 // =========================================================================
 // KONFIGURASI API — WAJIB DIISI SEBELUM DIPAKAI
 // =========================================================================
-const API_URL = "https://script.google.com/macros/s/AKfycbz25Fw_ceLoiFivtuYqHd9V5cM7phQ82fBE-GfhsqChGGMtTbzhAm2SDMYxc0sNOb1k/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyhectZhAPlE0uvhuKEKFZoriPjXXgDiUCPBLdnnLgOZXtBswPUJRwu5top6tdRkTfb/exec";
 const API_KEY = "sk_live_4zXHlUp57mSaUjEcXrdXuaw8UrHGsUxK";
 
 // =========================================================================
@@ -299,7 +299,7 @@ function gantiHalaman(halaman) {
   document.getElementById('sidebar').classList.remove('mobile-open');
   document.getElementById('navBackdrop').classList.add('hidden');
 
-  if (halaman === 'realisasi') { loadRingkasanAnggaran(); loadRiwayatRealisasi(); loadKegiatanFinalUntukRealisasi(); loadAntreanPersetujuan(); }
+  if (halaman === 'realisasi') { loadRingkasanAnggaran(); loadRiwayatRealisasi(); loadKegiatanFinalUntukRealisasi(); loadKegiatanFinalUntukTransfer(); loadAntreanPersetujuan(); }
   if (halaman === 'admin') { isiFormPengaturanAksesAdmin(); loadUsers(); }
 }
 
@@ -507,6 +507,7 @@ function loadDaftarKegiatan() {
     data.forEach((item, index) => {
       const isFinal = item.status === 'FINAL';
       const badgeStatus = isFinal ? '<span class="badge badge-ungu">🔒 FINAL</span>' : '<span class="badge">DRAFT</span>';
+      const catatanBadge = item.catatan ? `<span class="badge badge-info" title="${esc_(item.catatan)}" style="margin-left:4px">📋</span>` : '';
       const tombolEdit = isFinal
         ? `<button disabled title="Terkunci">📝</button>`
         : `<button onclick="editKegiatan('${esc_(item.id)}', this)" title="Edit">📝</button>`;
@@ -529,7 +530,7 @@ function loadDaftarKegiatan() {
           <td>${esc_(item.pj)}</td>
           <td class="center">${esc_(item.snp)}</td>
           <td>${esc_(item.unit)}</td>
-          <td class="center">${badgeStatus}</td>
+          <td class="center">${badgeStatus}${catatanBadge}</td>
         </tr>
         <tr>
           <td colspan="11" style="padding:0;border-bottom:2px solid var(--border);">
@@ -585,6 +586,7 @@ function applyEditData(data, idKegiatan) {
     document.getElementById('inputPelaksanaan').value = data.identitas.pelaksanaan || "";
     document.getElementById('indikator').value = data.identitas.indikator || "";
     document.getElementById('target').value = data.identitas.target || "";
+    document.getElementById('catatan').value = data.identitas.catatan || "";
   }
 
   const tbody = document.getElementById('bodyRincian');
@@ -623,7 +625,8 @@ function simpanData() {
       pj: document.getElementById('pjInput').value,
       pelaksanaan: document.getElementById('inputPelaksanaan').value,
       indikator: document.getElementById('indikator').value,
-      target: document.getElementById('target').value
+      target: document.getElementById('target').value,
+      catatan: document.getElementById('catatan').value
     },
     rincian: []
   };
@@ -785,6 +788,15 @@ function applyDetailData(data) {
   document.getElementById('detStatus').innerHTML = data.identitas.status === 'FINAL'
     ? '<span class="badge badge-ungu">🔒 FINAL' + (data.identitas.tanggalDikunci ? ' — ' + esc_(data.identitas.tanggalDikunci) : '') + '</span>'
     : '<span class="badge">DRAFT</span>';
+
+  // Tampilkan catatan hanya jika ada (dan user login — backend sudah handle)
+  const catatanRow = document.getElementById('detCatatanRow');
+  if (data.identitas.catatan) {
+    catatanRow.style.display = '';
+    document.getElementById('detCatatan').textContent = data.identitas.catatan;
+  } else {
+    catatanRow.style.display = 'none';
+  }
 
   let tbodyHTML = "", grandTotal = 0;
   if (data.rincian.length === 0) {
@@ -959,6 +971,8 @@ function resetTombolDownload() {
 function loadKegiatanFinalUntukRealisasi() {
   return callAPI('getDaftarKegiatan').then(data => {
     const select = document.getElementById('realKegiatanId');
+    const searchInput = document.getElementById('searchKegiatan');
+    if (searchInput) searchInput.value = '';
     const finalOnly = (data || []).filter(k => k.status === 'FINAL');
     if (finalOnly.length === 0) {
       select.innerHTML = '<option value="">-- Belum ada RAKS berstatus FINAL --</option>';
@@ -967,6 +981,24 @@ function loadKegiatanFinalUntukRealisasi() {
     select.innerHTML = finalOnly.map(k => `<option value="${esc_(k.id)}">${esc_(k.nama)} (${esc_(k.unit)})</option>`).join('');
     tampilkanSisaAnggaran();
   }).catch(err => console.error(err));
+}
+
+function filterKegiatanSelect() {
+  const query = document.getElementById('searchKegiatan').value.toLowerCase();
+  const select = document.getElementById('realKegiatanId');
+  const options = select.options;
+  let firstMatch = null;
+  for (let i = 0; i < options.length; i++) {
+    const text = options[i].text.toLowerCase();
+    const match = text.includes(query);
+    options[i].hidden = !match;
+    options[i].disabled = !match;
+    if (match && !firstMatch) firstMatch = options[i];
+  }
+  if (firstMatch && options[select.selectedIndex]?.disabled) {
+    select.value = firstMatch.value;
+    tampilkanSisaAnggaran();
+  }
 }
 
 function tampilkanSisaAnggaran() {
@@ -1005,13 +1037,77 @@ function ajukanRealisasiUI() {
   }).catch(err => toast("Gagal mengajukan: " + err.message, "error"));
 }
 
-function loadRingkasanAnggaran() {
-  return callAPI('getRingkasanAnggaran').then(data => {
-    daftarRingkasanCache = data || [];
-    const tbody = document.getElementById('bodyRingkasanAnggaran');
-    if (!data || data.length === 0) { tbody.innerHTML = '<tr class="table-loading-row"><td colspan="5">Belum ada data.</td></tr>'; return; }
+const PAGE_SIZE = 10;
+let ringkasanPage = 1, riwayatPage = 1;
 
-    tbody.innerHTML = data.map(r => {
+function renderPagination(containerId, infoId, currentPage, totalItems, pageCallbackName) {
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  if (currentPage > totalPages) currentPage = totalPages;
+  const start = totalItems > 0 ? (currentPage - 1) * PAGE_SIZE + 1 : 0;
+  const end = Math.min(currentPage * PAGE_SIZE, totalItems);
+  document.getElementById(infoId).textContent = totalItems > 0
+    ? `Menampilkan ${start}–${end} dari ${totalItems} data`
+    : 'Tidak ada data';
+
+  if (totalItems === 0) { document.getElementById(containerId).innerHTML = ''; return currentPage; }
+
+  const g = (p) => `${pageCallbackName}(${p})`;
+  let html = `<button ${currentPage <= 1 ? 'disabled' : ''} onclick="${g(currentPage - 1)}">‹</button>`;
+
+  const maxBtns = 5;
+  let pStart = Math.max(1, currentPage - Math.floor(maxBtns / 2));
+  let pEnd = Math.min(totalPages, pStart + maxBtns - 1);
+  if (pEnd - pStart < maxBtns - 1) pStart = Math.max(1, pEnd - maxBtns + 1);
+
+  if (pStart > 1) {
+    html += `<button onclick="${g(1)}">1</button>`;
+    if (pStart > 2) html += `<button disabled>…</button>`;
+  }
+  for (let p = pStart; p <= pEnd; p++) {
+    html += `<button class="${p === currentPage ? 'active' : ''}" onclick="${g(p)}">${p}</button>`;
+  }
+  if (pEnd < totalPages) {
+    if (pEnd < totalPages - 1) html += `<button disabled>…</button>`;
+    html += `<button onclick="${g(totalPages)}">${totalPages}</button>`;
+  }
+
+  html += `<button ${currentPage >= totalPages ? 'disabled' : ''} onclick="${g(currentPage + 1)}">›</button>`;
+  document.getElementById(containerId).innerHTML = html;
+  return currentPage;
+}
+
+function goRingkasanPage(p) {
+  ringkasanPage = p;
+  renderRingkasanPaged();
+}
+
+function goRiwayatPage(p) {
+  riwayatPage = p;
+  const filter = document.getElementById('filterStatusRiwayat').value;
+  const data = (!filter) ? semuaDataRealisasiCache : semuaDataRealisasiCache.filter(r => r.status === filter);
+  renderRiwayatRealisasi(data);
+}
+
+function renderRingkasanPaged() {
+  const search = (document.getElementById('searchRingkasan')?.value || '').toLowerCase();
+  let data = daftarRingkasanCache || [];
+  if (search) {
+    data = data.filter(r => r.identitas && (
+      r.identitas.nama.toLowerCase().includes(search) ||
+      r.identitas.unit.toLowerCase().includes(search)
+    ));
+  }
+
+  const totalItems = data.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  if (ringkasanPage > totalPages) ringkasanPage = totalPages;
+  const paged = data.slice((ringkasanPage - 1) * PAGE_SIZE, ringkasanPage * PAGE_SIZE);
+
+  const tbody = document.getElementById('bodyRingkasanAnggaran');
+  if (paged.length === 0) {
+    tbody.innerHTML = '<tr class="table-loading-row"><td colspan="5">Tidak ada data ditemukan.</td></tr>';
+  } else {
+    tbody.innerHTML = paged.map(r => {
       if (!r.identitas) return '';
       const totalRealisasi = r.realisasiDisetujui + r.realisasiPending;
       const persenDisetujui = r.totalAnggaran > 0 ? Math.min(100, (r.realisasiDisetujui / r.totalAnggaran) * 100) : 0;
@@ -1031,10 +1127,23 @@ function loadRingkasanAnggaran() {
         </td>
       </tr>`;
     }).join('');
+  }
+  ringkasanPage = renderPagination('paginationRingkasan', 'infoRingkasan', ringkasanPage, totalItems, 'goRingkasanPage');
+}
+
+function loadRingkasanAnggaran() {
+  ringkasanPage = 1;
+  document.getElementById('searchRingkasan').value = '';
+  return callAPI('getRingkasanAnggaran').then(data => {
+    daftarRingkasanCache = data || [];
+    renderRingkasanPaged();
   }).catch(err => console.error(err));
 }
 
 function loadRiwayatRealisasi() {
+  riwayatPage = 1;
+  document.getElementById('searchRiwayat').value = '';
+  document.getElementById('filterStatusRiwayat').value = '';
   return callAPI('getAllRealisasi').then(data => {
     semuaDataRealisasiCache = data || [];
     renderRiwayatRealisasi(semuaDataRealisasiCache);
@@ -1042,36 +1151,55 @@ function loadRiwayatRealisasi() {
 }
 
 function renderRiwayatRealisasi(data) {
+  const search = (document.getElementById('searchRiwayat')?.value || '').toLowerCase();
+  let filtered = data || [];
+  if (search) {
+    filtered = filtered.filter(r => {
+      const ring = daftarRingkasanCache.find(rr => rr.identitas && rr.identitas.id === r.idKegiatan);
+      const nama = ring ? ring.identitas.nama.toLowerCase() : (r.idKegiatan || '').toLowerCase();
+      const komponen = (r.komponen || '').toLowerCase();
+      return nama.includes(search) || komponen.includes(search);
+    });
+  }
+
+  const totalItems = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  if (riwayatPage > totalPages) riwayatPage = totalPages;
+  const paged = filtered.slice((riwayatPage - 1) * PAGE_SIZE, riwayatPage * PAGE_SIZE);
+
   const tbody = document.getElementById('bodyRiwayatRealisasi');
-  if (!data || data.length === 0) { tbody.innerHTML = '<tr class="table-loading-row"><td colspan="6">Belum ada pengajuan.</td></tr>'; return; }
+  if (paged.length === 0) {
+    tbody.innerHTML = '<tr class="table-loading-row"><td colspan="6">Tidak ada pengajuan ditemukan.</td></tr>';
+  } else {
+    tbody.innerHTML = paged.map(r => {
+      let badgeClass = 'badge';
+      if (r.status === 'Disetujui') badgeClass = 'badge badge-hijau';
+      else if (r.status === 'Diajukan') badgeClass = 'badge badge-amber';
+      else if (r.status === 'Ditolak') badgeClass = 'badge badge-merah';
 
-  tbody.innerHTML = data.map(r => {
-    let badgeClass = 'badge';
-    if (r.status === 'Disetujui') badgeClass = 'badge badge-hijau';
-    else if (r.status === 'Diajukan') badgeClass = 'badge badge-amber';
-    else if (r.status === 'Ditolak') badgeClass = 'badge badge-merah';
+      const ring = daftarRingkasanCache.find(rr => rr.identitas && rr.identitas.id === r.idKegiatan);
+      const namaKegiatan = ring ? ring.identitas.nama : r.idKegiatan;
+      const unitKegiatan = ring ? ring.identitas.unit : '';
 
-    // Cari nama kegiatan dari cache ringkasan
-    const ring = daftarRingkasanCache.find(rr => rr.identitas && rr.identitas.id === r.idKegiatan);
-    const namaKegiatan = ring ? ring.identitas.nama : r.idKegiatan;
-    const unitKegiatan = ring ? ring.identitas.unit : '';
+      const keterangan = r.status === 'Ditolak'
+        ? `<span style="font-size:11px;color:var(--text-secondary)">Ditolak: ${esc_(r.alasan || '-')}</span>`
+        : (r.keterangan ? esc_(r.keterangan) : '—');
 
-    const keterangan = r.status === 'Ditolak'
-      ? `<span style="font-size:11px;color:var(--text-secondary)">Ditolak: ${esc_(r.alasan || '-')}</span>`
-      : (r.keterangan ? esc_(r.keterangan) : '—');
-
-    return `<tr>
-      <td>${esc_(r.tanggalPenggunaan)}</td>
-      <td>${esc_(namaKegiatan)}<br><span style="font-size:11px;color:var(--text-secondary)">${esc_(unitKegiatan)}</span></td>
-      <td>${esc_(r.komponen)}</td>
-      <td class="num">${formatRupiah(r.jumlah)}</td>
-      <td class="center"><span class="${badgeClass}">${esc_(r.status)}</span></td>
-      <td>${keterangan}</td>
-    </tr>`;
-  }).join('');
+      return `<tr>
+        <td>${esc_(r.tanggalPenggunaan)}</td>
+        <td>${esc_(namaKegiatan)}<br><span style="font-size:11px;color:var(--text-secondary)">${esc_(unitKegiatan)}</span></td>
+        <td>${esc_(r.komponen)}</td>
+        <td class="num">${formatRupiah(r.jumlah)}</td>
+        <td class="center"><span class="${badgeClass}">${esc_(r.status)}</span></td>
+        <td>${keterangan}</td>
+      </tr>`;
+    }).join('');
+  }
+  riwayatPage = renderPagination('paginationRiwayat', 'infoRiwayat', riwayatPage, totalItems, 'goRiwayatPage');
 }
 
 function terapkanFilterRiwayat() {
+  riwayatPage = 1;
   const filter = document.getElementById('filterStatusRiwayat').value;
   if (!filter) {
     renderRiwayatRealisasi(semuaDataRealisasiCache);
@@ -1115,6 +1243,9 @@ function loadAntreanPersetujuan() {
         </td>
       </tr>`;
     }).join('');
+  }).then(() => {
+    // Juga muat antrean transfer
+    loadAntreanTransfer();
   }).catch(err => console.error(err));
 }
 
@@ -1126,6 +1257,7 @@ function setujuiRealisasiUI(idRealisasi) {
     loadRingkasanAnggaran();
     loadRiwayatRealisasi();
     loadAntreanPersetujuan();
+    loadAntreanTransfer();
     loadKegiatanFinalUntukRealisasi(); // refresh sisa anggaran
   }).catch(err => toast("Gagal: " + err.message, "error"));
 }
@@ -1139,7 +1271,152 @@ function tolakRealisasiUI(idRealisasi) {
     loadRingkasanAnggaran();
     loadRiwayatRealisasi();
     loadAntreanPersetujuan();
+    loadAntreanTransfer();
     loadKegiatanFinalUntukRealisasi(); // refresh sisa anggaran
+  }).catch(err => toast("Gagal: " + err.message, "error"));
+}
+
+// =========================================================================
+// TRANSFER ANGGARAN
+// =========================================================================
+function loadKegiatanFinalUntukTransfer() {
+  return callAPI('getDaftarKegiatan').then(data => {
+    const select = document.getElementById('transferSumberId');
+    const searchInput = document.getElementById('searchKegiatanTransfer');
+    if (searchInput) searchInput.value = '';
+    const finalOnly = (data || []).filter(k => k.status === 'FINAL');
+    if (finalOnly.length === 0) {
+      select.innerHTML = '<option value="">-- Belum ada RAKS berstatus FINAL --</option>';
+      return;
+    }
+    select.innerHTML = finalOnly.map(k => `<option value="${esc_(k.id)}">${esc_(k.nama)} (${esc_(k.unit)})</option>`).join('');
+    tampilkanSisaTransfer();
+  }).catch(err => console.error(err));
+}
+
+function filterKegiatanTransferSelect() {
+  const query = document.getElementById('searchKegiatanTransfer').value.toLowerCase();
+  const select = document.getElementById('transferSumberId');
+  const options = select.options;
+  let firstMatch = null;
+  for (let i = 0; i < options.length; i++) {
+    const text = options[i].text.toLowerCase();
+    const match = text.includes(query);
+    options[i].hidden = !match;
+    options[i].disabled = !match;
+    if (match && !firstMatch) firstMatch = options[i];
+  }
+  if (firstMatch && options[select.selectedIndex]?.disabled) {
+    select.value = firstMatch.value;
+    tampilkanSisaTransfer();
+  }
+}
+
+function tampilkanSisaTransfer() {
+  const id = document.getElementById('transferSumberId').value;
+  const info = document.getElementById('transferSisaInfo');
+  const ring = daftarRingkasanCache.find(r => r.identitas && r.identitas.id === id);
+  if (ring) {
+    const totalRealisasi = ring.realisasiDisetujui + ring.realisasiPending;
+    info.innerHTML = `Dianggarkan: <strong>${formatRupiah(ring.totalAnggaran)}</strong> ·
+      Realisasi: <strong>${formatRupiah(totalRealisasi)}</strong> ·
+      Transfer keluar: <strong style="color:#D97706">${formatRupiah(ring.transferKeluar || 0)}</strong> ·
+      Sisa: <strong style="color:#059669">${formatRupiah(ring.sisaAnggaran)}</strong>`;
+  } else {
+    info.innerText = '';
+  }
+}
+
+function ajukanTransferUI() {
+  if (!isLoggedIn) { toast("Silakan login terlebih dahulu.", "error"); bukaModalLogin(); return; }
+  const idSumber = document.getElementById('transferSumberId').value;
+  const jumlah = parseFloat(document.getElementById('transferJumlah').value) || 0;
+  const unitTujuan = document.getElementById('transferUnitTujuan').value;
+  const namaKegiatan = document.getElementById('transferNamaKegiatan').value;
+
+  if (!idSumber) return toast("Pilih kegiatan sumber terlebih dahulu.", "error");
+  if (jumlah <= 0) return toast("Jumlah transfer harus lebih dari 0.", "error");
+  if (!unitTujuan) return toast("Pilih unit tujuan.", "error");
+  if (!namaKegiatan) return toast("Nama kegiatan tujuan wajib diisi.", "error");
+
+  const payload = {
+    idSumber: idSumber,
+    jumlah: jumlah,
+    unitTujuan: unitTujuan,
+    programTujuan: document.getElementById('transferProgramTujuan').value,
+    namaKegiatanTujuan: namaKegiatan,
+    pjTujuan: document.getElementById('transferPJ').value,
+    komponen: document.getElementById('transferKomponen').value
+  };
+
+  callAPI('ajukanTransfer', payload).then(response => {
+    toast(response, "success");
+    // Reset form
+    document.getElementById('transferJumlah').value = '';
+    document.getElementById('transferUnitTujuan').value = '';
+    document.getElementById('transferProgramTujuan').value = '';
+    document.getElementById('transferNamaKegiatan').value = '';
+    document.getElementById('transferPJ').value = '';
+    document.getElementById('transferKomponen').value = '';
+    document.getElementById('searchKegiatanTransfer').value = '';
+    loadKegiatanFinalUntukTransfer();
+    loadAntreanTransfer();
+    loadRingkasanAnggaran();
+  }).catch(err => toast("Gagal: " + err.message, "error"));
+}
+
+function loadAntreanTransfer() {
+  const tbody = document.getElementById('bodyAntreanTransfer');
+  const blok = document.getElementById('blokAntreanTransfer');
+  if (!tbody || !blok) return Promise.resolve();
+
+  if (!isLoggedIn || !currentUser || !['admin','kepsek'].includes(currentUser.role)) {
+    blok.style.display = 'none';
+    return Promise.resolve();
+  }
+
+  return callAPI('getTransferPending').then(data => {
+    if (!data || data.length === 0) {
+      blok.style.display = 'none';
+      return;
+    }
+    blok.style.display = '';
+    tbody.innerHTML = data.map(t => `<tr>
+      <td>${esc_(t.namaSumber)}<br><span style="font-size:11px;color:var(--text-secondary)">→ ${esc_(t.namaKegiatanTujuan)}</span></td>
+      <td class="num" style="font-weight:600;color:#7C3AED">${formatRupiah(t.jumlah)}</td>
+      <td>${esc_(t.unitTujuan)}<br><span style="font-size:11px;color:var(--text-secondary)">${esc_(t.komponen)}</span></td>
+      <td>${esc_(t.diajukanOleh)}</td>
+      <td class="center">
+        <div class="row-actions" style="justify-content:center">
+          <button onclick="setujuiTransferUI('${esc_(t.idTransfer)}')" title="Setujui" style="color:#059669">✔️</button>
+          <button onclick="tolakTransferUI('${esc_(t.idTransfer)}')" title="Tolak" style="color:var(--red-dark)">✖️</button>
+        </div>
+      </td>
+    </tr>`).join('');
+  }).catch(err => console.error(err));
+}
+
+function setujuiTransferUI(idTransfer) {
+  if (!isLoggedIn) { toast("Silakan login terlebih dahulu.", "error"); bukaModalLogin(); return; }
+  if (!['admin','kepsek'].includes(currentUser.role)) { toast("Hanya Kepsek/Admin yang bisa menyetujui transfer.", "error"); return; }
+  if (!confirm("Setujui transfer ini? Kegiatan baru akan dibuat otomatis dengan anggaran dari transfer.")) return;
+  callAPI('setujuiTransfer', { idTransfer: idTransfer }).then(response => {
+    toast(response, "success");
+    loadRingkasanAnggaran();
+    loadDaftarKegiatan();
+    loadAntreanTransfer();
+    loadKegiatanFinalUntukTransfer();
+    loadKegiatanFinalUntukRealisasi();
+  }).catch(err => toast("Gagal: " + err.message, "error"));
+}
+
+function tolakTransferUI(idTransfer) {
+  if (!isLoggedIn) { toast("Silakan login terlebih dahulu.", "error"); bukaModalLogin(); return; }
+  if (!['admin','kepsek'].includes(currentUser.role)) { toast("Hanya Kepsek/Admin yang bisa menolak transfer.", "error"); return; }
+  const alasan = prompt("Alasan penolakan transfer:") || "-";
+  callAPI('tolakTransfer', { idTransfer: idTransfer, alasan: alasan }).then(response => {
+    toast(response, "success");
+    loadAntreanTransfer();
   }).catch(err => toast("Gagal: " + err.message, "error"));
 }
 
