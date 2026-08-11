@@ -1,7 +1,7 @@
 // =========================================================================
 // KONFIGURASI API — WAJIB DIISI SEBELUM DIPAKAI
 // =========================================================================
-const API_URL = "https://script.google.com/macros/s/AKfycbyhectZhAPlE0uvhuKEKFZoriPjXXgDiUCPBLdnnLgOZXtBswPUJRwu5top6tdRkTfb/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwmIvvEtDGhyslXA9u7RZ2JgGaocGaup1K2zkwI3Caa4-D3XBPXaRzGMlf0LD_g3m0/exec";
 const API_KEY = "sk_live_4zXHlUp57mSaUjEcXrdXuaw8UrHGsUxK";
 // =========================================================================
 // STATE GLOBAL
@@ -39,7 +39,7 @@ function esc_(str) {
 // =========================================================================
 async function callAPI(action, payload) {
   const token = localStorage.getItem('raks_token');
-  const body = { action: action, apiKey: API_KEY, payload: payload || {} };
+  const body = { action: action, payload: payload || {} };
   if (token) body.token = token;
 
   const res = await fetch(API_URL, {
@@ -286,7 +286,7 @@ function gantiHalaman(halaman) {
     return;
   }
 
-  ['form', 'rekap', 'daftar', 'sumberdana', 'kalender', 'realisasi', 'admin'].forEach(id => {
+  ['form', 'rekap', 'daftar', 'sumberdana', 'rekapAnggaran', 'transfer', 'kalender', 'realisasi', 'admin'].forEach(id => {
     const halamanEl = document.getElementById('halaman-' + id);
     const tabEl = document.getElementById('tab-' + id);
     if (halamanEl) halamanEl.classList.add('hidden');
@@ -343,7 +343,8 @@ window.onload = async function () {
   if (isLoggedIn && currentUser && currentUser.role === 'waka' && currentUser.unit) {
     const unitEl = document.getElementById('unit');
     if (unitEl) { unitEl.value = currentUser.unit; unitEl.disabled = true; }
-  }
+  }  
+  gantiHalaman('rekap');
 };
 
 // =========================================================================
@@ -656,7 +657,10 @@ function simpanData() {
     loadDataDashboard();
     loadDaftarKegiatan();
     gantiHalaman('daftar');
-  }).catch(err => toast("Gagal menyimpan: " + err.message, "error")).finally(() => { btn.disabled = false; });
+  }).catch(err => toast("Gagal menyimpan: " + err.message, "error")).finally(() => {
+    btn.disabled = false;
+    btn.innerText = "💾 SIMPAN RENCANA KEGIATAN";
+  });
 }
 
 function hapusKegiatan(idKegiatan) {
@@ -1270,14 +1274,12 @@ function setujuiRealisasiUI(idRealisasi) {
 function tolakRealisasiUI(idRealisasi) {
   if (!isLoggedIn) { toast("Silakan login terlebih dahulu.", "error"); bukaModalLogin(); return; }
   if (!['admin','kepsek'].includes(currentUser.role)) { toast("Hanya Kepsek/Admin yang bisa menolak realisasi.", "error"); return; }
-  const alasan = prompt("Alasan penolakan:") || "-";
-  callAPI('tolakRealisasi', { idRealisasi: idRealisasi, alasan: alasan }).then(response => {
-    toast(response, "success");
-    loadRingkasanAnggaran();
-    loadRiwayatRealisasi();
-    loadAntreanPersetujuan();
-    loadKegiatanFinalUntukRealisasi(); // refresh sisa anggaran
-  }).catch(err => toast("Gagal: " + err.message, "error"));
+  document.getElementById('modalAlasanJudul').innerText = '🗑️ Tolak Realisasi';
+  document.getElementById('modalAlasanPesan').innerText = 'Masukkan alasan penolakan pengajuan realisasi anggaran ini:';
+  document.getElementById('modalAlasanInput').value = '';
+  document.getElementById('modalAlasan').dataset.mode = 'realisasi';
+  document.getElementById('modalAlasan').dataset.id = idRealisasi;
+  openModal('modalAlasan');
 }
 
 // =========================================================================
@@ -1417,11 +1419,12 @@ function setujuiTransferUI(idTransfer) {
 function tolakTransferUI(idTransfer) {
   if (!isLoggedIn) { toast("Silakan login terlebih dahulu.", "error"); bukaModalLogin(); return; }
   if (!['admin','kepsek'].includes(currentUser.role)) { toast("Hanya Kepsek/Admin yang bisa menolak transfer.", "error"); return; }
-  const alasan = prompt("Alasan penolakan transfer:") || "-";
-  callAPI('tolakTransfer', { idTransfer: idTransfer, alasan: alasan }).then(response => {
-    toast(response, "success");
-    loadAntreanTransfer();
-  }).catch(err => toast("Gagal: " + err.message, "error"));
+  document.getElementById('modalAlasanJudul').innerText = '🗑️ Tolak Transfer';
+  document.getElementById('modalAlasanPesan').innerText = 'Masukkan alasan penolakan transfer anggaran ini:';
+  document.getElementById('modalAlasanInput').value = '';
+  document.getElementById('modalAlasan').dataset.mode = 'transfer';
+  document.getElementById('modalAlasan').dataset.id = idTransfer;
+  openModal('modalAlasan');
 }
 
 function loadRiwayatTransfer() {
@@ -1628,12 +1631,92 @@ function updateUserUI() {
 }
 
 function resetPasswordUI(username) {
-  const newPass = prompt("Masukkan password baru untuk '" + username + "' (minimal 6 karakter):");
-  if (!newPass) return;
-  if (newPass.length < 6) { toast("Password minimal 6 karakter.", "error"); return; }
-  callAPI('updateUser', { username: username, newPassword: newPass }).then(msg => {
-    toast("Password untuk '" + username + "' berhasil direset.", "success");
-  }).catch(err => toast("Gagal reset password: " + err.message, "error"));
+  document.getElementById('modalResetUsername').value = username;
+  document.getElementById('modalResetUser').innerText = username;
+  document.getElementById('modalResetPassword').value = '';
+  document.getElementById('modalResetPasswordConfirm').value = '';
+  document.getElementById('modalResetError').classList.add('hidden');
+  openModal('modalResetPass');
+}
+
+// =========================================================================
+// HANDLER MODAL ALASAN PENOLAKAN
+// =========================================================================
+function submitAlasanPenolakan() {
+  const modal = document.getElementById('modalAlasan');
+  const mode = modal.dataset.mode;
+  const id = modal.dataset.id;
+  const alasan = document.getElementById('modalAlasanInput').value.trim();
+  if (!alasan) {
+    toast("Alasan penolakan wajib diisi.", "error");
+    return;
+  }
+  const btn = document.getElementById('btnKonfirmasiAlasan');
+  btn.disabled = true;
+  btn.textContent = 'Memproses...';
+
+  const action = mode === 'realisasi' ? 'tolakRealisasi' : 'tolakTransfer';
+  const payload = mode === 'realisasi'
+    ? { idRealisasi: id, alasan: alasan }
+    : { idTransfer: id, alasan: alasan };
+
+  callAPI(action, payload).then(response => {
+    toast(response, "success");
+    closeModal('modalAlasan');
+    if (mode === 'realisasi') {
+      loadRingkasanAnggaran();
+      loadRiwayatRealisasi();
+      loadAntreanPersetujuan();
+      loadKegiatanFinalUntukRealisasi();
+    } else {
+      loadAntreanTransfer();
+    }
+  }).catch(err => toast("Gagal: " + err.message, "error")).finally(() => {
+    btn.disabled = false;
+    btn.textContent = '🗑️ Tolak';
+  });
+}
+
+// =========================================================================
+// HANDLER MODAL RESET PASSWORD
+// =========================================================================
+function submitResetPassword() {
+  const username = document.getElementById('modalResetUsername').value;
+  const pass = document.getElementById('modalResetPassword').value;
+  const passConfirm = document.getElementById('modalResetPasswordConfirm').value;
+  const errEl = document.getElementById('modalResetError');
+
+  if (!pass) {
+    errEl.textContent = 'Password wajib diisi.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  if (pass.length < 6) {
+    errEl.textContent = 'Password minimal 6 karakter.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  if (pass !== passConfirm) {
+    errEl.textContent = 'Konfirmasi password tidak cocok.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  errEl.classList.add('hidden');
+
+  const btn = document.getElementById('btnKonfirmasiReset');
+  btn.disabled = true;
+  btn.textContent = 'Memproses...';
+
+  callAPI('updateUser', { username: username, newPassword: pass }).then(msg => {
+    toast(msg, "success");
+    closeModal('modalResetPass');
+  }).catch(err => {
+    errEl.textContent = err.message;
+    errEl.classList.remove('hidden');
+  }).finally(() => {
+    btn.disabled = false;
+    btn.textContent = '💾 Simpan';
+  });
 }
 
 // =========================================================================
