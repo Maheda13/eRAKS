@@ -475,7 +475,7 @@
       </section>
 
       <!-- ========== INPUT RAK (butuh login) ========== -->
-      <section id="halaman-form">
+      <section id="halaman-form" class="hidden">
         <div class="section-header"><h2 id="judulFormRAK">Input Rencana Anggaran Kegiatan (RAK)</h2></div>
 
         <form id="formRAK" onsubmit="event.preventDefault(); simpanData();">
@@ -770,6 +770,54 @@
       <div class="modal-footer">
         <button class="btn-primary" id="btnUpdateUser" onclick="updateUserUI()">💾 Simpan Perubahan</button>
         <button class="btn-secondary" onclick="closeModal('modalEditUser')">Batal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL ALASAN PENOLAKAN ================= -->
+  <div class="modal-overlay hidden" id="modalAlasan">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modalAlasanJudul">📝 Alasan Penolakan</h3>
+        <button class="btn-close" onclick="closeModal('modalAlasan')">×</button>
+      </div>
+      <div class="modal-body">
+        <p id="modalAlasanPesan" style="color:var(--text-secondary);margin-bottom:12px;font-size:13px;"></p>
+        <div class="field">
+          <label>Alasan Penolakan</label>
+          <textarea id="modalAlasanInput" rows="3" placeholder="Tulis alasan penolakan..." style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-body);font-size:13px;resize:vertical;"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-danger" id="btnKonfirmasiAlasan" onclick="submitAlasanPenolakan()">🗑️ Tolak</button>
+        <button class="btn-secondary" onclick="closeModal('modalAlasan')">Batal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL RESET PASSWORD ================= -->
+  <div class="modal-overlay hidden" id="modalResetPass">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🔒 Reset Password</h3>
+        <button class="btn-close" onclick="closeModal('modalResetPass')">×</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--text-secondary);margin-bottom:12px;font-size:13px;">Reset password untuk user: <strong id="modalResetUser">-</strong></p>
+        <input type="hidden" id="modalResetUsername">
+        <div class="field" style="margin-bottom:14px;">
+          <label>Password Baru</label>
+          <input type="password" id="modalResetPassword" placeholder="Minimal 6 karakter" autocomplete="new-password">
+        </div>
+        <div class="field" style="margin-bottom:14px;">
+          <label>Konfirmasi Password</label>
+          <input type="password" id="modalResetPasswordConfirm" placeholder="Ketik ulang password" autocomplete="new-password">
+        </div>
+        <div id="modalResetError" class="login-error hidden"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" id="btnKonfirmasiReset" onclick="submitResetPassword()">💾 Simpan</button>
+        <button class="btn-secondary" onclick="closeModal('modalResetPass')">Batal</button>
       </div>
     </div>
   </div>
