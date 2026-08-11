@@ -9,7 +9,8 @@
   --red: #DC2626;
   --red-light: #FEE2E2;
   --red-dark: #991B1B;
-
+  --primary: #DC2626;
+   
   /* Neutrals — warm palette */
   --bg: #FAFAF9;
   --surface: #FFFFFF;
@@ -607,3 +608,20 @@ td.mono { font-family: var(--font-mono); font-size: 12px; }
 .mb-md { margin-bottom: 16px; }
 .w-full { width: 100%; }
 .gap-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ---------- MODAL TEXTAREA & DANGER BUTTON ---------- */
+textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(220,38,38,0.08);
+  outline: none;
+}
+
+.btn-danger {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 20px; border-radius: var(--radius); font-weight: 600; font-size: 13px;
+  border: none; cursor: pointer;
+  background: var(--red); color: #fff;
+}
+.btn-danger:hover { background: var(--red-dark); }
+.btn-danger:disabled { opacity: .5; cursor: not-allowed; }
+
