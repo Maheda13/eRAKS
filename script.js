@@ -465,6 +465,18 @@ function loadDataDashboard() {
       ? Math.round((data.realisasiDisetujui / data.totalAnggaran) * 100) : 0;
     document.getElementById('heroRealisasiStatus').innerText = persenRealisasi + "% anggaran terealisasi";
 
+    // Hero card kegiatan terlambat
+    const jmlTerlambat = data.kegiatanTerlambat || 0;
+    const cardTerlambat = document.getElementById('heroCardTerlambat');
+    document.getElementById('heroTerlambatCount').innerText = jmlTerlambat;
+    if (jmlTerlambat > 0) {
+      cardTerlambat.classList.add('accent-red');
+      document.getElementById('heroTerlambatSub').innerText = jmlTerlambat + ' kegiatan belum diselesaikan melewati batas waktu';
+    } else {
+      cardTerlambat.classList.remove('accent-red');
+      document.getElementById('heroTerlambatSub').innerText = 'Semua kegiatan tepat waktu ✅';
+    }
+
     const namaSNP = ["Kompetensi Lulusan", "Standar Isi", "Standar Proses", "Sistem Penilaian", "Pendidik & Tendik", "Sarana Prasarana", "Standar Pengelolaan", "Standar Pembiayaan"];
     let htmlTabel = '';
     if (data.snp && data.snp.forEach) {
@@ -515,6 +527,7 @@ function loadDaftarKegiatan() {
     data.forEach((item, index) => {
       const isFinal = item.status === 'FINAL';
       const badgeStatus = isFinal ? '<span class="badge badge-ungu">🔒 FINAL</span>' : '<span class="badge">DRAFT</span>';
+      const badgeTerlambat = item.terlambat ? ' <span class="badge badge-merah">TERLAMBAT</span>' : '';
       const catatanBadge = item.catatan ? `<span class="badge badge-info" title="${esc_(item.catatan)}" style="margin-left:4px">📋</span>` : '';
       const tombolEdit = isFinal
         ? `<button disabled title="Terkunci">📝</button>`
@@ -538,7 +551,7 @@ function loadDaftarKegiatan() {
           <td>${esc_(item.pj)}</td>
           <td class="center">${esc_(item.snp)}</td>
           <td>${esc_(item.unit)}</td>
-          <td class="center">${badgeStatus}${catatanBadge}</td>
+          <td class="center">${badgeStatus}${badgeTerlambat}${catatanBadge}</td>
         </tr>
         <tr>
           <td colspan="11" style="padding:0;border-bottom:2px solid var(--border);">
