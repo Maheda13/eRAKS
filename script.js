@@ -1,7 +1,7 @@
 // =========================================================================
 // KONFIGURASI API — WAJIB DIISI SEBELUM DIPAKAI
 // =========================================================================
-const API_URL = "https://script.google.com/macros/s/AKfycbwmIvvEtDGhyslXA9u7RZ2JgGaocGaup1K2zkwI3Caa4-D3XBPXaRzGMlf0LD_g3m0/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyuOx3sm_KIpUKd2u6Ev6xrwtizIdK52_kQqoI5uqZ8csahQtswZo_UT8JUqHXCXr1I/exec";
 const API_KEY = "sk_live_4zXHlUp57mSaUjEcXrdXuaw8UrHGsUxK";
 // =========================================================================
 // STATE GLOBAL
