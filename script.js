@@ -659,7 +659,7 @@ function simpanData() {
     gantiHalaman('daftar');
   }).catch(err => toast("Gagal menyimpan: " + err.message, "error")).finally(() => {
     btn.disabled = false;
-    btn.innerText = "💾 SIMPAN RENCANA KEGIATAN";
+    btn.innerText = currentEditId ? "UPDATE DATA KEGIATAN" : "💾 SIMPAN RENCANA KEGIATAN";
   });
 }
 
@@ -1116,7 +1116,7 @@ function renderRingkasanPaged() {
 
   const tbody = document.getElementById('bodyRingkasanAnggaran');
   if (paged.length === 0) {
-    tbody.innerHTML = '<tr class="table-loading-row"><td colspan="5">Tidak ada data ditemukan.</td></tr>';
+    tbody.innerHTML = '<tr class="table-loading-row"><td colspan="6">Tidak ada data ditemukan.</td></tr>';
   } else {
     tbody.innerHTML = paged.map(r => {
       if (!r.identitas) return '';
@@ -1365,6 +1365,8 @@ function ajukanTransferUI() {
     document.getElementById('transferPJ').value = '';
     document.getElementById('transferKomponen').value = '';
     document.getElementById('searchKegiatanTransfer').value = '';
+    document.getElementById('transferSumberId').value = '';
+    document.getElementById('transferSisaInfo').innerText = '';
     loadKegiatanFinalUntukTransfer();
     loadAntreanTransfer();
     loadRingkasanAnggaran();
@@ -1490,7 +1492,7 @@ async function loadPengaturanAkses() {
   try {
     pengaturanAksesCache = await callAPI('getPengaturanAkses');
   } catch (e) {
-    pengaturanAksesCache = { form: true, daftar: true, rekap: true, sumberdana: true, kalender: true, realisasi: true };
+    pengaturanAksesCache = { form: true, daftar: true, rekap: true, sumberdana: true, rekapAnggaran: true, transfer: true, kalender: true, realisasi: true };
   }
   terapkanPengaturanAksesUI();
   isiFormPengaturanAksesAdmin();
@@ -1503,7 +1505,7 @@ function terapkanPengaturanAksesUI() {
   DAFTAR_TAB_KEY.forEach(key => {
     const btn = document.getElementById('tab-' + key);
     if (!btn) return;
-    const boleh = isLoggedIn || pengaturanAksesCache[key] !== false;
+    const boleh = (isLoggedIn && currentUser && currentUser.role === 'admin') || pengaturanAksesCache[key] !== false;
     btn.classList.toggle('hidden', !boleh);
   });
   const tabAktif = document.querySelector('#navTabs .tab-btn.active');
@@ -1552,7 +1554,7 @@ function loadUsers() {
   if (!isLoggedIn || !currentUser || currentUser.role !== 'admin') return Promise.resolve();
   return callAPI('listUsers').then(data => {
     const tbody = document.getElementById('bodyTabelUsers');
-    if (!data || data.length === 0) { tbody.innerHTML = '<tr class="table-loading-row"><td colspan="6">Belum ada data user.</td></tr>'; return; }
+    if (!data || !Array.isArray(data) || data.length === 0) { tbody.innerHTML = '<tr class="table-loading-row"><td colspan="6">Belum ada data user.</td></tr>'; return; }
     tbody.innerHTML = data.map(u => {
       const statusBadge = u.status === 'aktif'
         ? '<span class="badge badge-hijau">Aktif</span>'
